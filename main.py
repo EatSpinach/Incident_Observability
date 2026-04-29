@@ -433,7 +433,7 @@ class IncidentEvaluator:
         
         for idx, row in enumerate(self.df):
             incident_num = self.safe_cell_text(row.get(incident_col, ''))
-            if incident_num == selected:
+            if incident_num.lower() == selected.lower():
                 incident_idx = idx
                 break
         
