@@ -1,0 +1,108 @@
+{
+    "worknotes": {
+        "required_keywords": [
+            "detection",
+            "analysis",
+            "impact",
+            "log",
+            "monitoring"
+        ]
+    },
+    "closing_comments": {
+        "required_keywords": [
+            "resolution",
+            "verification",
+            "rootcause"
+        ]
+    },
+    "scoring": {
+        "keywords_weight": 1.0
+    },
+    "evaluation_criteria": {
+        "good_threshold": 74,
+        "average_threshold": 50,
+        "poor_threshold": 0
+    },
+    "phase_keywords": {
+        "detection": [
+            "detection",
+            "detected",
+            "identified",
+            "discovered",
+            "found",
+            "alarm",
+            "alert",
+            "detect",
+            "identify",
+            "discover"
+        ],
+        "analysis": [
+            "analysis",
+            "analyzed",
+            "investigated",
+            "examined",
+            "reviewed",
+            "analyze",
+            "investigate",
+            "examine",
+            "review",
+            "troubleshoot",
+            "check"
+        ],
+        "impact": [
+            "impact",
+            "affected",
+            "severity",
+            "priority",
+            "affect",
+            "severe",
+            "urgent",
+            "urgency",
+            "critical",
+            "complex"
+        ],
+        "log": [
+            "log",
+            "logs",
+            "logged",
+            "logging"
+        ],
+        "rootcause": [
+            "root cause",
+            "rootcause",
+            "root-cause",
+            "cause identified",
+            "reason",
+            "rca",
+            "cause",
+            "problem",
+            "issue"
+        ],
+        "resolution": [
+            "resolution",
+            "resolved",
+            "fixed",
+            "corrected",
+            "remediated",
+            "fix",
+            "solution",
+            "correction"
+        ],
+        "verification": [
+            "verification",
+            "verified",
+            "tested",
+            "confirmed",
+            "validated",
+            "checked"
+        ],
+        "monitoring": [
+            "monitoring",
+            "monitor",
+            "monitored",
+            "tracking",
+            "observing",
+            "watching"
+        ]
+    }
+}
