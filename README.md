@@ -1,19 +1,41 @@
 # Incident Observability
 
-A desktop GUI application for evaluating incident worknotes and closing comments based on predefined parameters.
+A comprehensive solution for evaluating incident worknotes and closing comments with both desktop and web interfaces.
 
-## Features
+## 🎯 Overview
 
-- **Excel File Processing**: Load and process incident dumps from Excel files (.xlsx, .xls)
-- **Automated Evaluation**: Evaluate worknotes and closing comments based on configurable criteria
-- **Quality Scoring**: Score incidents based on:
-  - Presence of required keywords (100% weight)
-- **Visual Results**: Color-coded results display (Good, Average, Poor)
-- **Executive Dashboard**: Summary metrics and analysis views
-- **Export Functionality**: Export evaluation results back to Excel
-- **Configurable Parameters**: Easily customize evaluation criteria via config.json
+Incident Observability provides automated evaluation of incident documentation quality based on configurable criteria. Available in two versions:
 
-## Installation
+- **Desktop Application** (`main.py`) - Full-featured GUI with advanced analytics
+- **Web Application** (`app.py`) - Browser-based interface accessible via URL
+
+## ✨ Features
+
+- **Excel File Processing**: Load and process incident dumps (.xlsx, .xls)
+- **Automated Evaluation**: Score incidents based on required keywords
+- **Quality Scoring**: Rate incidents as Good (>74%), Average (50-74%), or Poor (<50%)
+- **Visual Results**: Color-coded displays for easy identification
+- **Executive Dashboard**: Summary metrics and group analysis
+- **Application Group Analysis**: Team/application-level performance tracking
+- **Resolver Analysis**: Individual resolver performance metrics
+- **Export Functionality**: Save evaluation results to Excel
+- **Configurable Parameters**: Customize evaluation criteria via config.json
+- **Keyword Management**: Built-in interface to manage evaluation keywords
+
+## 📋 Table of Contents
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Desktop Application](#desktop-application)
+- [Web Application](#web-application)
+- [Configuration](#configuration)
+- [Evaluation Criteria](#evaluation-criteria)
+- [Dashboard Features](#dashboard-features)
+- [Keyword Management](#keyword-management)
+- [Troubleshooting](#troubleshooting)
+- [Deployment](#deployment)
+
+## 🚀 Installation
 
 ### Prerequisites
 - Python 3.8 or higher
@@ -21,9 +43,9 @@ A desktop GUI application for evaluating incident worknotes and closing comments
 
 ### Setup Steps
 
-1. **Navigate to the project directory**:
+1. **Navigate to project directory**:
    ```bash
-   cd "Incident_Observability"
+   cd Incident_Observability
    ```
 
 2. **Install required packages**:
@@ -31,58 +53,81 @@ A desktop GUI application for evaluating incident worknotes and closing comments
    pip install -r requirements.txt
    ```
 
-## Usage
+## ⚡ Quick Start
 
-### Running the Application
-
+### Desktop Application
 ```bash
+# Windows
+.\run_app.bat
+
+# Or directly
 python main.py
 ```
 
-### Step-by-Step Guide
+### Web Application
+```bash
+# Run locally
+python app.py
 
-1. **Launch the Application**
-   - Run `python main.py`
-   - The GUI window will open
+# Access at http://localhost:5000
+```
 
-2. **Load Excel File**
-   - Click "Browse" button or use File → Load Excel
-   - Select your incident dump Excel file
-   - The application will automatically detect columns containing worknotes and closing comments
+## 🖥️ Desktop Application
 
-3. **Evaluate Incidents**
-   - Click the "Evaluate" button
-   - The application will process all incidents based on configured parameters
-   - Progress will be shown in the status bar
+### Features
+- Modern GUI with professional design
+- 4-tab interface: Dashboard, Application Group Analysis, Resolver Analysis, Evaluation Results
+- Real-time evaluation progress
+- Advanced filtering and sorting
+- Comprehensive export options
 
-4. **View Dashboard**
-   - Navigate to "📊 Dashboard" tab to see:
-     - Executive Summary with all key metrics
-     - Application Group Analysis with detailed breakdowns
-   - Results are color-coded:
-     - **Mint Green**: Good (Score > 74%)
-     - **Sky Blue**: Average (Score >=50% and <75%)
-     - **Peach**: Poor (Score < 50%)
+### Usage
 
-5. **View Detailed Results**
-   - Switch to "Evaluation Results" tab for incident-by-incident details
-   - Color-coded rows for easy identification
+1. **Launch**: Run `run_app.bat` or `python main.py`
+2. **Load Data**: Click "Browse" or File → Load Excel
+3. **Evaluate**: Click "Evaluate" button
+4. **Review**: Check Dashboard for summary, other tabs for details
+5. **Export**: File → Export Results
 
-6. **Export Results**
-   - Use File → Export Results
-   - Save the combined data (original + evaluation results) to a new Excel file
+### Required Excel Columns
+- Incident ID/Number
+- Work Notes
+- Closing Comments
+- Resolved (optional, for date range)
+- Application/Group/Team (optional, for group analysis)
+- Resolver/Resolved By (optional, for resolver analysis)
 
-## Configuration
+## 🌐 Web Application
+
+### Features
+- Browser-based interface
+- No installation required for users
+- Mobile-friendly responsive design
+- Cloud deployment ready
+- Real-time processing with progress indicators
+
+### Local Testing
+```bash
+python app.py
+# Open http://localhost:5000 in browser
+```
+
+### Deployment Options
+- **Render.com** (Recommended - Free)
+- **Railway.app** (Free alternative)
+- **Heroku** (Requires credit card)
+- **Azure/AWS** (Enterprise)
+
+See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed instructions.
+
+## ⚙️ Configuration
 
 ### config.json Structure
-
-The application uses `config.json` to define evaluation parameters:
 
 ```json
 {
   "worknotes": {
-    "required_keywords": ["detection", "analysis", "impact", "log",
-                         "monitoring"]
+    "required_keywords": ["detection", "analysis", "impact", "log", "monitoring"]
   },
   "closing_comments": {
     "required_keywords": ["resolution", "verification", "rootcause"]
@@ -98,155 +143,227 @@ The application uses `config.json` to define evaluation parameters:
 }
 ```
 
-### Evaluation Parameters
+### Customizing Parameters
 
-#### Worknotes Evaluation
-The application checks for these required keywords:
+1. Edit `config.json` directly, or
+2. Use the Keyword Management tab in the desktop application
+3. Restart application to apply changes
+
+## 📊 Evaluation Criteria
+
+### Scoring System
+
+**Score = (Keywords Found / Total Required Keywords) × 100%**
+
+### Worknotes Evaluation (5 keywords)
 1. **Detection**: Identification of the issue
 2. **Analysis**: Investigation performed
 3. **Impact**: Assessment of severity
 4. **Log**: Evidence captured in logs
 5. **Monitoring**: Ongoing observation
 
-#### Closing Comments Evaluation
-Focuses on these required keywords:
-- **Resolution**: Clear resolution statement
-- **Verification**: Confirmation of fix
-- **Rootcause**: Root cause summary
-
-### Customizing Parameters
-
-1. **Edit config.json** directly
-2. Restart the application to apply updated parameters
-
-### Scoring System
-
-The scoring is based 100% on keyword presence:
-- `keywords_weight`: 1.0 (100%)
-- Score = (Keywords Found / Total Keywords) × 100%
-
-## Excel File Format
-
-### Expected Columns
-
-The application automatically detects columns containing:
-- **Incident ID**: Any column with "incident", "id", "number", or "ticket"
-- **Worknotes**: Columns with "worknote", "work note", "notes", or "comments"
-- **Closing Comments**: Columns with "closing", "close comment", or "resolution"
-
-### Sample Excel Structure
-
-| Incident ID | Worknotes | Closing Comments | Status |
-|-------------|-----------|------------------|--------|
-| INC001 | Alert received... | Resolved by... | Closed |
-| INC002 | Detection of... | Validated and... | Closed |
-
-## Evaluation Scoring
-
-### Score Calculation
-
-Each incident receives three scores:
-1. **Worknotes Score** (0-100)
-2. **Closing Comments Score** (0-100)
-3. **Overall Score** (average of above)
-
-### Score Calculation
-
-**Score = (Required Keywords Found / Total Required Keywords) × 100%**
-
-The score is based purely on the percentage of required keywords found in the text.
+### Closing Comments Evaluation (3 keywords)
+1. **Resolution**: Clear resolution statement
+2. **Verification**: Confirmation of fix
+3. **Rootcause**: Root cause summary
 
 ### Quality Ratings
+- **Good** (>74%): Most key parameters documented
+- **Average** (50-74%): Adequate documentation with gaps
+- **Poor** (<50%): Insufficient documentation
 
-Based on the percentage of required keywords found:
-- **Good** (> 74%): Most key parameters documented
-- **Average** (>=50% and <75%): Adequate documentation with some gaps
-- **Poor** (< 50%): Insufficient documentation, major gaps
+## 📈 Dashboard Features
 
-## Output
+### Executive Dashboard
+- **Header**: Total records, date range, evaluation criteria
+- **Executive Summary**: Worknotes and Closing Comments metrics
+  - Average scores
+  - Good/Average/Poor/Blank counts
+- **Application Group Summary**: Group-level quality distribution
 
-### Evaluation Results Include
+### Application Group Analysis
+- Detailed group performance table
+- Sortable columns
+- Color-coded rows
+- Average scores per group
 
-- Incident ID
-- Worknotes Score
-- Closing Comments Score
-- Overall Score
-- Quality Rating
-- Worknotes Issues (specific problems identified)
-- Closing Issues (specific problems identified)
+### Resolver Analysis
+- Individual resolver performance
+- Filterable by application group
+- Sortable metrics
+- Performance tracking
 
-### Statistics Provided
+### Evaluation Results
+- Incident-by-incident details
+- Filterable by application group
+- Complete scoring breakdown
+- Issues identification
 
-- Total incidents evaluated
-- Average, median, min, max scores
-- Quality distribution (count and percentage)
-- Top issues identified
-- Common problems across incidents
+## 🔑 Keyword Management
 
-## Troubleshooting
+### Desktop Application Feature
+Access via "🔑 Keyword Management" tab:
+
+#### Required Keywords Tab
+- Manage worknotes required keywords
+- Manage closing comments required keywords
+- Add, edit, or remove keywords
+- Real-time updates
+
+#### Phase Keywords Tab
+Manage keywords for 8 phases:
+- Detection, Analysis, Impact, Log
+- Root Cause, Resolution, Verification, Monitoring
+
+### Actions Available
+- ➕ Add Keyword: Add new keywords
+- 🗑️ Clear All: Remove all keywords
+- 💾 Save All Changes: Persist to config.json
+- 🔄 Reload from Config: Discard changes
+
+## 🔧 Troubleshooting
 
 ### Common Issues
 
-1. **"Could not detect required columns"**
-   - Ensure your Excel file has columns for worknotes or closing comments
-   - Column names should contain keywords like "worknote", "closing", etc.
+**"Could not detect required columns"**
+- Ensure Excel has columns for worknotes/closing comments
+- Column names should contain keywords like "worknote", "closing"
 
-2. **"Failed to load file"**
-   - Check file format (.xlsx or .xls)
-   - Ensure file is not corrupted
-   - Close file if open in Excel
+**"Failed to load file"**
+- Check file format (.xlsx or .xls)
+- Close file if open in Excel
+- Verify file is not corrupted
 
-3. **Low Scores**
-   - Review the "Issues" columns in results
-   - Check if required keywords are present
-   - Ensure all key parameters are documented
+**Low Scores**
+- Review "Issues" columns in results
+- Check if required keywords are present
+- Adjust keywords in config.json if needed
 
-### Tips for Better Scores
+**Python Not Found**
+- Reinstall Python with "Add to PATH" checked
+- Or manually add Python to system PATH
 
-1. **Include All Required Keywords**: Ensure worknotes cover all 5 required keywords
-2. **Use Keywords Naturally**: Include required keywords in your documentation
-3. **Be Specific**: Provide clear detection, analysis, impact, log, and monitoring details
+**Module Not Found**
+```bash
+pip install -r requirements.txt
+```
 
-## Advanced Features
+### Performance Tips
+- Large files (10,000+ records) may take 1-2 minutes
+- Close other applications when processing large files
+- Export results incrementally for very large datasets
 
-### Batch Processing
-- Load large Excel files (tested with 10,000+ records)
-- Efficient processing with progress indication
+## 🚀 Deployment
 
-### Customization
-- Modify evaluation criteria without code changes
-- Add/remove keywords as needed
-- Adjust scoring weights to match your requirements
+### Web Application Deployment
 
-### Export Options
-- Combined data (original + evaluation results)
-- Preserves all original columns
-- Adds evaluation columns for analysis
+#### Render.com (Recommended)
+1. Push code to GitHub
+2. Sign up at https://render.com
+3. Create new Web Service
+4. Connect repository
+5. Deploy automatically
 
-## Support
+#### Railway.app
+1. Push code to GitHub
+2. Sign up at https://railway.app
+3. Create new project from GitHub
+4. Generate domain
+5. Access via provided URL
+
+See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for complete instructions.
+
+## 📁 Project Structure
+
+```
+Incident_Observability/
+├── main.py                      # Desktop application
+├── app.py                       # Web application
+├── config.json                  # Configuration file
+├── requirements.txt             # Python dependencies
+├── run_app.bat                  # Windows launcher
+├── templates/
+│   └── index.html              # Web interface
+├── Procfile                     # Deployment config
+├── runtime.txt                  # Python version
+├── render.yaml                  # Render.com config
+├── .gitignore                   # Git ignore rules
+├── CHANGELOG.md                 # Version history
+├── DEPLOYMENT_GUIDE.md          # Deployment instructions
+├── WEB_APP_README.md            # Web app documentation
+├── RENDER_DEPLOYMENT_STEPS.md   # Render-specific steps
+└── IBM_GITHUB_UPLOAD_GUIDE.md   # IBM GitHub guide
+```
+
+## 📊 Output
+
+### Evaluation Results Include
+- Incident ID
+- Worknotes Score (0-100)
+- Closing Comments Score (0-100)
+- Overall Score (average)
+- Quality Rating (Good/Average/Poor)
+- Worknotes Issues (specific problems)
+- Closing Issues (specific problems)
+
+### Statistics Provided
+- Total incidents evaluated
+- Average, median, min, max scores
+- Quality distribution (count and percentage)
+- Group-level analysis
+- Resolver-level analysis
+
+## 🎯 Use Cases
+
+### For Management
+- Quick overview of incident handling quality
+- Identify teams/applications needing improvement
+- Track overall performance metrics
+- Data-driven decision making
+
+### For Team Leads
+- Monitor team-specific performance
+- Compare against other teams
+- Identify training needs
+- Track progress over time
+
+### For Quality Assurance
+- Assess documentation completeness
+- Track improvement trends
+- Identify common gaps
+- Ensure compliance with standards
+
+## 📝 Version History
+
+### v2.5.2 (2026-04-29)
+- Consolidated documentation
+- Removed redundant files
+- Improved project structure
+
+### v2.0.0 (2026-04-21)
+- Simplified scoring to 100% keyword-based
+- Updated quality ratings
+- Streamlined configuration
+- Added web application
+
+### v1.0.0 (2026-04-21)
+- Initial release
+- Core evaluation functionality
+- GUI interface
+- Configurable parameters
+
+## 🤝 Support
 
 For issues or questions:
-1. Check the configuration in config.json
-2. Review the Statistics tab for insights
-3. Examine specific incident issues in the results
+1. Check this README for common solutions
+2. Review config.json settings
+3. Examine Statistics tab for insights
+4. Check platform-specific documentation
 
-## Version History
-
-- **v2.0.0** (2026-04-21)
-  - Simplified scoring to 100% keyword-based evaluation
-  - Removed length, quality, and format scoring components
-  - Updated quality ratings: Good (>74%), Average (>=50% and <75%), Poor (<50%)
-  - Removed "closure" keyword from evaluation
-  - Streamlined configuration and settings UI
-
-- **v1.0.0** (2026-04-21)
-  - Initial release
-  - Core evaluation functionality
-  - GUI interface
-  - Configurable parameters
-  - Export functionality
-  - Statistics dashboard
-
-## License
+## 📄 License
 
 This application is provided as-is for incident management and quality evaluation purposes.
+
+---
+
+**Made with ❤️ for better incident management**
