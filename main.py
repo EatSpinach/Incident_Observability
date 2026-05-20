@@ -245,18 +245,29 @@ class IncidentEvaluator:
         actions_frame = ttk.Frame(self.results_frame)
         actions_frame.pack(fill=tk.X, padx=5, pady=(5, 0))
         
-        # Application Group Filter on the left
+        # Filters on the left
         filter_frame = ttk.Frame(actions_frame)
         filter_frame.pack(side=tk.LEFT)
         
-        ttk.Label(filter_frame, text="Filter by Application Group:", font=('Arial', 9, 'bold')).pack(side=tk.LEFT, padx=(0, 5))
+        # Month filter
+        ttk.Label(filter_frame, text="Month:", font=('Arial', 9, 'bold')).pack(side=tk.LEFT, padx=(0, 5))
+        self.results_month_filter_var = tk.StringVar(value='All Months')
+        self.results_month_filter_dropdown = ttk.Combobox(filter_frame,
+                                                          textvariable=self.results_month_filter_var,
+                                                          values=['All Months'],
+                                                          state='readonly',
+                                                          width=20)
+        self.results_month_filter_dropdown.pack(side=tk.LEFT, padx=(0, 10))
+        self.results_month_filter_dropdown.bind('<<ComboboxSelected>>',
+                                               lambda e: self.display_results())
         
-        # Dropdown will be populated when data is loaded
+        # Application Group filter
+        ttk.Label(filter_frame, text="Group:", font=('Arial', 9, 'bold')).pack(side=tk.LEFT, padx=(0, 5))
         self.results_filter_var = tk.StringVar(value='All')
         self.results_filter_dropdown = ttk.Combobox(filter_frame, textvariable=self.results_filter_var,
-                                                     values=['All'], state='readonly', width=50)
+                                                     values=['All'], state='readonly', width=30)
         self.results_filter_dropdown.pack(side=tk.LEFT, padx=(0, 10))
-        self.results_filter_dropdown.bind('<<ComboboxSelected>>', lambda e: self.display_results(self.results_filter_var.get()))
+        self.results_filter_dropdown.bind('<<ComboboxSelected>>', lambda e: self.display_results())
         
         # Export button on the right
         ttk.Button(actions_frame, text="Export Evaluation Results", command=self.export_results).pack(side=tk.RIGHT)
@@ -767,18 +778,157 @@ class IncidentEvaluator:
                                  font=('Arial', 14))
         initial_label.pack(pady=50)
     
+    def get_available_months(self):
+        """Extract unique months from evaluation results"""
+        if not self.evaluation_results:
+            return []
+        
+        from datetime import datetime
+        months = set()
+        
+        for result in self.evaluation_results:
+            resolved_date = result.get('Resolved', '')
+            if not resolved_date or str(resolved_date).strip().lower() in ['', 'none', 'null', 'n/a']:
+                continue
+            
+            try:
+                date_str = str(resolved_date).strip()
+                date_part = date_str.split()[0] if ' ' in date_str else date_str
+                
+                parsed_date = None
+                formats = [
+                    '%Y-%m-%d', '%d-%m-%Y', '%m/%d/%Y', '%d/%m/%Y',
+                    '%Y/%m/%d', '%d-%b-%Y', '%d-%B-%Y', '%b-%d-%Y',
+                    '%Y-%m-%d %H:%M:%S', '%d-%m-%Y %H:%M:%S'
+                ]
+                
+                for fmt in formats:
+                    try:
+                        parsed_date = datetime.strptime(date_str if '%H:%M:%S' in fmt else date_part, fmt)
+                        break
+                    except:
+                        continue
+                
+                if parsed_date:
+                    month_key = parsed_date.strftime('%Y-%m')
+                    month_display = parsed_date.strftime('%B %Y')
+                    months.add((month_key, month_display))
+            except:
+                continue
+        
+        # Sort by month key and return display names
+        sorted_months = sorted(list(months), key=lambda x: x[0])
+        return ['All Months'] + [m[1] for m in sorted_months]
+    
+    def filter_results_by_month(self, results, selected_month):
+        """Filter results by selected month"""
+        if selected_month == 'All Months' or not selected_month:
+            return results
+        
+        from datetime import datetime
+        filtered = []
+        
+        for result in results:
+            resolved_date = result.get('Resolved', '')
+            if not resolved_date:
+                continue
+            
+            try:
+                date_str = str(resolved_date).strip()
+                date_part = date_str.split()[0] if ' ' in date_str else date_str
+                
+                parsed_date = None
+                formats = [
+                    '%Y-%m-%d', '%d-%m-%Y', '%m/%d/%Y', '%d/%m/%Y',
+                    '%Y/%m/%d', '%d-%b-%Y', '%d-%B-%Y', '%b-%d-%Y',
+                    '%Y-%m-%d %H:%M:%S', '%d-%m-%Y %H:%M:%S'
+                ]
+                
+                for fmt in formats:
+                    try:
+                        parsed_date = datetime.strptime(date_str if '%H:%M:%S' in fmt else date_part, fmt)
+                        break
+                    except:
+                        continue
+                
+                if parsed_date:
+                    month_display = parsed_date.strftime('%B %Y')
+                    if month_display == selected_month:
+                        filtered.append(result)
+            except:
+                continue
+        
+        return filtered
+    
+    def update_month_filters(self):
+        """Update month filter dropdowns in all tabs"""
+        months = self.get_available_months()
+        
+        # Update group analysis month filter
+        if hasattr(self, 'group_month_filter_dropdown'):
+            self.group_month_filter_dropdown['values'] = months
+            self.group_month_filter_var.set('All Months')
+        
+        # Update individual analysis month filter
+        if hasattr(self, 'individual_month_filter_dropdown'):
+            self.individual_month_filter_dropdown['values'] = months
+            self.individual_month_filter_var.set('All Months')
+        
+        # Update results month filter
+        if hasattr(self, 'results_month_filter_dropdown'):
+            self.results_month_filter_dropdown['values'] = months
+            self.results_month_filter_var.set('All Months')
+    
     def create_group_analysis_tab(self):
         """Create application group analysis tab"""
-        self.group_analysis_content = self.group_analysis_frame
+        # Filter frame at top
+        filter_frame = ttk.Frame(self.group_analysis_frame)
+        filter_frame.pack(fill=tk.X, padx=10, pady=(10, 0))
         
-        initial_label = ttk.Label(self.group_analysis_frame,
+        ttk.Label(filter_frame, text="Filter by Month:",
+                 font=('Arial', 9, 'bold')).pack(side=tk.LEFT, padx=(0, 5))
+        
+        self.group_month_filter_var = tk.StringVar(value='All Months')
+        self.group_month_filter_dropdown = ttk.Combobox(filter_frame,
+                                                        textvariable=self.group_month_filter_var,
+                                                        values=['All Months'],
+                                                        state='readonly',
+                                                        width=30)
+        self.group_month_filter_dropdown.pack(side=tk.LEFT, padx=(0, 10))
+        self.group_month_filter_dropdown.bind('<<ComboboxSelected>>',
+                                             lambda e: self.update_group_analysis())
+        
+        # Content frame
+        self.group_analysis_content = ttk.Frame(self.group_analysis_frame)
+        self.group_analysis_content.pack(fill=tk.BOTH, expand=True)
+        
+        initial_label = ttk.Label(self.group_analysis_content,
                                  text="Load and evaluate data to see application group analysis",
                                  font=('Arial', 14))
         initial_label.pack(pady=50)
     
     def create_individual_tab(self):
         """Create resolver analysis tab"""
-        self.individual_content = self.individual_frame
+        # Filter frame at top
+        filter_frame = ttk.Frame(self.individual_frame)
+        filter_frame.pack(fill=tk.X, padx=10, pady=(10, 0))
+        
+        ttk.Label(filter_frame, text="Filter by Month:",
+                 font=('Arial', 9, 'bold')).pack(side=tk.LEFT, padx=(0, 5))
+        
+        self.individual_month_filter_var = tk.StringVar(value='All Months')
+        self.individual_month_filter_dropdown = ttk.Combobox(filter_frame,
+                                                             textvariable=self.individual_month_filter_var,
+                                                             values=['All Months'],
+                                                             state='readonly',
+                                                             width=30)
+        self.individual_month_filter_dropdown.pack(side=tk.LEFT, padx=(0, 10))
+        self.individual_month_filter_dropdown.bind('<<ComboboxSelected>>',
+                                                  lambda e: self.update_individual_dashboard())
+        
+        # Content frame
+        self.individual_content = ttk.Frame(self.individual_frame)
+        self.individual_content.pack(fill=tk.BOTH, expand=True)
     
     def open_keyword_management(self):
         """Open keyword management window - Display only"""
@@ -1179,6 +1329,7 @@ class IncidentEvaluator:
                 results.append(result)
             
             self.evaluation_results = results
+            self.update_month_filters()
             self.display_results()
             self.update_dashboard()
             self.update_group_analysis()
@@ -1264,16 +1415,19 @@ class IncidentEvaluator:
         
         return sorted(list(groups))
     
-    def group_results_by_application(self):
+    def group_results_by_application(self, results=None):
         """Group evaluation results by application"""
-        if not self.evaluation_results or not self.df:
+        if results is None:
+            results = self.evaluation_results
+        
+        if not results or not self.df:
             return {}
         
         cols = self.detect_columns()
         app_col = cols.get('app_group') if cols else None
         
         grouped = {}
-        for idx, result in enumerate(self.evaluation_results):
+        for idx, result in enumerate(results):
             if idx < len(self.df):
                 if app_col:
                     group = self.safe_cell_text(self.df[idx].get(app_col, 'Ungrouped'))
@@ -1287,16 +1441,19 @@ class IncidentEvaluator:
         
         return grouped
     
-    def group_results_by_individual(self):
+    def group_results_by_individual(self, results=None):
         """Group evaluation results by resolved by individual"""
-        if not self.evaluation_results or not self.df:
+        if results is None:
+            results = self.evaluation_results
+            
+        if not results or not self.df:
             return {}
         
         cols = self.detect_columns()
         individual_col = cols.get('resolved_by') if cols else None
         
         grouped = {}
-        for idx, result in enumerate(self.evaluation_results):
+        for idx, result in enumerate(results):
             if idx < len(self.df):
                 if individual_col:
                     person = self.safe_cell_text(self.df[idx].get(individual_col, 'Unassigned'))
@@ -1421,7 +1578,7 @@ class IncidentEvaluator:
         return score, issues
     
     def display_results(self, selected_group=None):
-        """Display evaluation results with optional application group filter"""
+        """Display evaluation results with optional application group and month filter"""
         # Clear existing data
         for item in self.results_tree.get_children():
             self.results_tree.delete(item)
@@ -1429,6 +1586,10 @@ class IncidentEvaluator:
         # Configure columns
         if not self.evaluation_results:
             return
+        
+        # Apply month filter first
+        selected_month = self.results_month_filter_var.get() if hasattr(self, 'results_month_filter_var') else 'All Months'
+        filtered_results = self.filter_results_by_month(self.evaluation_results, selected_month)
         
         # Populate filter dropdown with application groups
         cols = self.detect_columns()
@@ -1445,7 +1606,7 @@ class IncidentEvaluator:
         group_options = ['All'] + sorted(all_groups)
         self.results_filter_dropdown['values'] = group_options
         if not selected_group:
-            self.results_filter_var.set('All')
+            selected_group = self.results_filter_var.get()
         
         ordered_result_columns = [
             'Number',
@@ -1498,8 +1659,8 @@ class IncidentEvaluator:
         
         # Insert data with color coding and filtering
         row_num = 1
-        for row in self.evaluation_results:
-            # Apply filter if set
+        for row in filtered_results:
+            # Apply group filter if set
             if filter_group:
                 row_group = row.get('Group', 'Ungrouped')
                 if row_group != filter_group:
@@ -1868,8 +2029,18 @@ class IncidentEvaluator:
                      font=('Arial', 14)).pack(pady=50)
             return
         
-        # Application Group-wise Results
-        grouped_results = self.group_results_by_application()
+        # Apply month filter
+        selected_month = self.group_month_filter_var.get() if hasattr(self, 'group_month_filter_var') else 'All Months'
+        filtered_results = self.filter_results_by_month(self.evaluation_results, selected_month)
+        
+        if not filtered_results:
+            ttk.Label(self.group_analysis_content,
+                     text=f"No data available for {selected_month}",
+                     font=('Arial', 14)).pack(pady=50)
+            return
+        
+        # Application Group-wise Results from filtered data
+        grouped_results = self.group_results_by_application(filtered_results)
         
         if grouped_results:
             # Create treeview for group summary - directly without label frame
@@ -1995,7 +2166,7 @@ class IncidentEvaluator:
     
     
     def update_individual_dashboard(self, selected_group=None):
-        """Update resolver analysis in its own tab with optional application group filter"""
+        """Update resolver analysis in its own tab with optional application group and month filter"""
         for widget in self.individual_content.winfo_children():
             widget.destroy()
         
@@ -2006,7 +2177,17 @@ class IncidentEvaluator:
             self.individual_analysis_tree = None
             return
         
-        individual_results = self.group_results_by_individual()
+        # Apply month filter
+        selected_month = self.individual_month_filter_var.get() if hasattr(self, 'individual_month_filter_var') else 'All Months'
+        filtered_results = self.filter_results_by_month(self.evaluation_results, selected_month)
+        
+        if not filtered_results:
+            ttk.Label(self.individual_content,
+                     text=f"No data available for {selected_month}",
+                     font=('Arial', 14)).pack(pady=50)
+            return
+        
+        individual_results = self.group_results_by_individual(filtered_results)
         
         if individual_results:
             individual_frame = ttk.Frame(self.individual_content, padding=8)
