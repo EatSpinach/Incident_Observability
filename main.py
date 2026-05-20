@@ -457,7 +457,7 @@ class IncidentEvaluator:
         hsb.grid(row=1, column=0, sticky="ew")
     
     def update_trend_analysis(self):
-        """Update monthly trend analysis - show months as columns for easy trend comparison"""
+        """Update monthly trend analysis - show months as columns with worknotes, closing, total avg and color coding"""
         # Clear existing data
         for item in self.trend_tree.get_children():
             self.trend_tree.delete(item)
@@ -528,40 +528,105 @@ class IncidentEvaluator:
         month_displays = [m[1] for m in sorted_months]
         month_keys = [m[0] for m in sorted_months]
         
-        # Configure columns: Application Group + one column per month
-        columns = ['Application Group'] + month_displays
+        # Configure columns: Application Group + (Worknotes, Closing, Total) for each month
+        columns = ['Application Group']
+        for month_display in month_displays:
+            columns.append(f"{month_display}\nWorknotes")
+            columns.append(f"{month_display}\nClosing")
+            columns.append(f"{month_display}\nTotal")
+        
         self.trend_tree['columns'] = columns
         self.trend_tree['show'] = 'headings'
         
         # Set column headings and widths
-        self.trend_tree.heading('Application Group', text='Application Group')
+        self.trend_tree.heading('Application Group', text='Application Group', anchor=tk.W)
         self.trend_tree.column('Application Group', width=200, anchor=tk.W)
         
         for month_display in month_displays:
-            self.trend_tree.heading(month_display, text=month_display)
-            self.trend_tree.column(month_display, width=80, anchor=tk.CENTER)
+            for metric in ['Worknotes', 'Closing', 'Total']:
+                col_name = f"{month_display}\n{metric}"
+                self.trend_tree.heading(col_name, text=f"{month_display}\n{metric}", anchor=tk.CENTER)
+                self.trend_tree.column(col_name, width=70, anchor=tk.CENTER)
         
         # Sort groups alphabetically
         sorted_groups = sorted(group_month_data.keys())
         
-        # Populate data - one row per group
+        # Populate data - one row per group with color coding
         for app_group in sorted_groups:
             month_data = group_month_data[app_group]
             row_values = [app_group]
+            row_tags = []
             
-            # Add score for each month
-            for month_key in month_keys:
+            prev_worknotes = None
+            prev_closing = None
+            prev_total = None
+            
+            # Add scores for each month
+            for idx, month_key in enumerate(month_keys):
                 if month_key in month_data:
                     data = month_data[month_key]
                     count = data['count']
+                    avg_worknotes = data['worknotes_total'] / count if count > 0 else 0
+                    avg_closing = data['closing_total'] / count if count > 0 else 0
                     avg_total = data['total_score'] / count if count > 0 else 0
+                    
+                    # Determine color tags based on comparison with previous month
+                    if prev_worknotes is not None:
+                        if avg_worknotes > prev_worknotes + 1:  # Improvement
+                            row_tags.append(f'green_{len(row_values)}')
+                        elif avg_worknotes < prev_worknotes - 1:  # Reduction
+                            row_tags.append(f'red_{len(row_values)}')
+                        else:  # No change
+                            row_tags.append(f'amber_{len(row_values)}')
+                    row_values.append(f"{avg_worknotes:.1f}")
+                    
+                    if prev_closing is not None:
+                        if avg_closing > prev_closing + 1:
+                            row_tags.append(f'green_{len(row_values)}')
+                        elif avg_closing < prev_closing - 1:
+                            row_tags.append(f'red_{len(row_values)}')
+                        else:
+                            row_tags.append(f'amber_{len(row_values)}')
+                    row_values.append(f"{avg_closing:.1f}")
+                    
+                    if prev_total is not None:
+                        if avg_total > prev_total + 1:
+                            row_tags.append(f'green_{len(row_values)}')
+                        elif avg_total < prev_total - 1:
+                            row_tags.append(f'red_{len(row_values)}')
+                        else:
+                            row_tags.append(f'amber_{len(row_values)}')
                     row_values.append(f"{avg_total:.1f}")
+                    
+                    prev_worknotes = avg_worknotes
+                    prev_closing = avg_closing
+                    prev_total = avg_total
                 else:
-                    row_values.append('-')
+                    row_values.extend(['-', '-', '-'])
+                    prev_worknotes = None
+                    prev_closing = None
+                    prev_total = None
             
-            self.trend_tree.insert('', tk.END, values=row_values)
+            item = self.trend_tree.insert('', tk.END, values=row_values)
+            
+            # Apply cell-specific colors (note: tkinter treeview doesn't support per-cell coloring)
+            # We'll use row-level tags for now - showing overall trend
+            if row_tags:
+                # Count predominant color
+                green_count = sum(1 for t in row_tags if 'green' in t)
+                red_count = sum(1 for t in row_tags if 'red' in t)
+                
+                if green_count > red_count:
+                    self.trend_tree.item(item, tags=('improving',))
+                elif red_count > green_count:
+                    self.trend_tree.item(item, tags=('declining',))
+                else:
+                    self.trend_tree.item(item, tags=('stable',))
         
-        # Note: Trends are now visible horizontally - users can easily see increase/decrease across months
+        # Configure tags for color coding
+        self.trend_tree.tag_configure('improving', background='#d4edda')  # Light green
+        self.trend_tree.tag_configure('declining', background='#f8d7da')  # Light red
+        self.trend_tree.tag_configure('stable', background='#fff3cd')     # Light amber
     
     def export_trend_results(self):
         """Export monthly trend results to Excel"""
