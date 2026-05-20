@@ -528,12 +528,12 @@ class IncidentEvaluator:
         month_displays = [m[1] for m in sorted_months]
         month_keys = [m[0] for m in sorted_months]
         
-        # Configure columns: Application Group + (Worknotes, Closing, Total) for each month
+        # Configure columns: Application Group + (Worknotes Avg, Closing Comments Avg, Total Avg) for each month
         columns = ['Application Group']
         for month_display in month_displays:
-            columns.append(f"{month_display}\nWorknotes")
-            columns.append(f"{month_display}\nClosing")
-            columns.append(f"{month_display}\nTotal")
+            columns.append(f"{month_display}\nWorknotes Avg")
+            columns.append(f"{month_display}\nClosing Comments Avg")
+            columns.append(f"{month_display}\nTotal Avg")
         
         self.trend_tree['columns'] = columns
         self.trend_tree['show'] = 'headings'
@@ -543,10 +543,10 @@ class IncidentEvaluator:
         self.trend_tree.column('Application Group', width=200, anchor=tk.W)
         
         for month_display in month_displays:
-            for metric in ['Worknotes', 'Closing', 'Total']:
+            for metric in ['Worknotes Avg', 'Closing Comments Avg', 'Total Avg']:
                 col_name = f"{month_display}\n{metric}"
                 self.trend_tree.heading(col_name, text=f"{month_display}\n{metric}", anchor=tk.CENTER)
-                self.trend_tree.column(col_name, width=70, anchor=tk.CENTER)
+                self.trend_tree.column(col_name, width=100, anchor=tk.CENTER)
         
         # Sort groups alphabetically
         sorted_groups = sorted(group_month_data.keys())
