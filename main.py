@@ -933,22 +933,8 @@ class IncidentEvaluator:
     
     def create_group_analysis_tab(self):
         """Create application group analysis tab"""
-        # Filter frame at top
-        filter_frame = ttk.Frame(self.group_analysis_frame)
-        filter_frame.pack(fill=tk.X, padx=10, pady=(10, 0))
-        
-        ttk.Label(filter_frame, text="Filter by Month:",
-                 font=('Arial', 9, 'bold')).pack(side=tk.LEFT, padx=(0, 5))
-        
+        # Store month filter variables for later use
         self.group_month_filter_var = tk.StringVar(value='All Months')
-        self.group_month_filter_dropdown = ttk.Combobox(filter_frame,
-                                                        textvariable=self.group_month_filter_var,
-                                                        values=['All Months'],
-                                                        state='readonly',
-                                                        width=30)
-        self.group_month_filter_dropdown.pack(side=tk.LEFT, padx=(0, 10))
-        self.group_month_filter_dropdown.bind('<<ComboboxSelected>>',
-                                             lambda e: self.update_group_analysis())
         
         # Content frame
         self.group_analysis_content = ttk.Frame(self.group_analysis_frame)
@@ -961,22 +947,8 @@ class IncidentEvaluator:
     
     def create_individual_tab(self):
         """Create resolver analysis tab"""
-        # Filter frame at top
-        filter_frame = ttk.Frame(self.individual_frame)
-        filter_frame.pack(fill=tk.X, padx=10, pady=(10, 0))
-        
-        ttk.Label(filter_frame, text="Filter by Month:",
-                 font=('Arial', 9, 'bold')).pack(side=tk.LEFT, padx=(0, 5))
-        
+        # Store month filter variable for later use
         self.individual_month_filter_var = tk.StringVar(value='All Months')
-        self.individual_month_filter_dropdown = ttk.Combobox(filter_frame,
-                                                             textvariable=self.individual_month_filter_var,
-                                                             values=['All Months'],
-                                                             state='readonly',
-                                                             width=30)
-        self.individual_month_filter_dropdown.pack(side=tk.LEFT, padx=(0, 10))
-        self.individual_month_filter_dropdown.bind('<<ComboboxSelected>>',
-                                                  lambda e: self.update_individual_dashboard())
         
         # Content frame
         self.individual_content = ttk.Frame(self.individual_frame)
@@ -2095,10 +2067,24 @@ class IncidentEvaluator:
         grouped_results = self.group_results_by_application(filtered_results)
         
         if grouped_results:
-            # Create treeview for group summary - directly without label frame
+            # Create actions frame with filters and export button in single row
             actions_frame = ttk.Frame(self.group_analysis_content)
             actions_frame.pack(fill=tk.X, padx=10, pady=(10, 5))
-            ttk.Button(actions_frame, text="Export Application Group Analysis", command=self.export_group_analysis).pack(side=tk.RIGHT)
+            
+            # Month filter on the left
+            ttk.Label(actions_frame, text="Month:", font=('Arial', 9, 'bold')).pack(side=tk.LEFT, padx=(0, 5))
+            self.group_month_filter_dropdown = ttk.Combobox(actions_frame,
+                                                            textvariable=self.group_month_filter_var,
+                                                            values=self.get_available_months(),
+                                                            state='readonly',
+                                                            width=20)
+            self.group_month_filter_dropdown.pack(side=tk.LEFT, padx=(0, 10))
+            self.group_month_filter_dropdown.bind('<<ComboboxSelected>>',
+                                                 lambda e: self.update_group_analysis())
+            
+            # Export button on the right
+            ttk.Button(actions_frame, text="Export Application Group Analysis",
+                      command=self.export_group_analysis).pack(side=tk.RIGHT)
             
             tree_frame = ttk.Frame(self.group_analysis_content)
             tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
@@ -2245,15 +2231,23 @@ class IncidentEvaluator:
             individual_frame = ttk.Frame(self.individual_content, padding=8)
             individual_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
             
-            # Filter and Actions frame
+            # Filter and Actions frame - all in single row
             actions_frame = ttk.Frame(individual_frame)
             actions_frame.pack(fill=tk.X, pady=(0, 5))
             
-            # Application Group Filter on the left
-            filter_frame = ttk.Frame(actions_frame)
-            filter_frame.pack(side=tk.LEFT)
+            # Month filter
+            ttk.Label(actions_frame, text="Month:", font=('Arial', 9, 'bold')).pack(side=tk.LEFT, padx=(0, 5))
+            self.individual_month_filter_dropdown = ttk.Combobox(actions_frame,
+                                                                 textvariable=self.individual_month_filter_var,
+                                                                 values=self.get_available_months(),
+                                                                 state='readonly',
+                                                                 width=20)
+            self.individual_month_filter_dropdown.pack(side=tk.LEFT, padx=(0, 10))
+            self.individual_month_filter_dropdown.bind('<<ComboboxSelected>>',
+                                                      lambda e: self.update_individual_dashboard())
             
-            ttk.Label(filter_frame, text="Filter by Application Group:", font=('Arial', 9, 'bold')).pack(side=tk.LEFT, padx=(0, 5))
+            # Application Group Filter
+            ttk.Label(actions_frame, text="Group:", font=('Arial', 9, 'bold')).pack(side=tk.LEFT, padx=(0, 5))
             
             # Get all unique application groups
             cols = self.detect_columns()
@@ -2270,13 +2264,14 @@ class IncidentEvaluator:
             group_options = ['All'] + sorted(all_groups)
             self.selected_app_group = tk.StringVar(value=selected_group if selected_group else 'All')
             
-            group_dropdown = ttk.Combobox(filter_frame, textvariable=self.selected_app_group,
-                                         values=group_options, state='readonly', width=50)
+            group_dropdown = ttk.Combobox(actions_frame, textvariable=self.selected_app_group,
+                                         values=group_options, state='readonly', width=30)
             group_dropdown.pack(side=tk.LEFT, padx=(0, 10))
             group_dropdown.bind('<<ComboboxSelected>>', lambda e: self.update_individual_dashboard(self.selected_app_group.get()))
             
             # Export button on the right
-            ttk.Button(actions_frame, text="Export Resolver Analysis", command=self.export_resolver_analysis).pack(side=tk.RIGHT)
+            ttk.Button(actions_frame, text="Export Resolver Analysis",
+                      command=self.export_resolver_analysis).pack(side=tk.RIGHT)
             
             tree_frame = ttk.Frame(individual_frame)
             tree_frame.pack(fill=tk.BOTH, expand=True, padx=2, pady=(0, 2))
