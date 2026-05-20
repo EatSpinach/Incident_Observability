@@ -457,7 +457,7 @@ class IncidentEvaluator:
         hsb.grid(row=1, column=0, sticky="ew")
     
     def update_trend_analysis(self):
-        """Update monthly trend analysis - show breakdown by group and month"""
+        """Update monthly trend analysis - show months as columns for easy trend comparison"""
         # Clear existing data
         for item in self.trend_tree.get_children():
             self.trend_tree.delete(item)
@@ -465,12 +465,13 @@ class IncidentEvaluator:
         if not self.evaluation_results:
             return
         
-        # Parse dates and group by month and application group
+        # Parse dates and group by application group and month
         from datetime import datetime
         from collections import defaultdict
         
-        # Structure: monthly_data[month_key][group] = {scores}
-        monthly_group_data = {}
+        # Structure: group_data[group][month_key] = {scores}
+        group_month_data = defaultdict(lambda: {})
+        all_months = set()
         
         for result in self.evaluation_results:
             resolved_date = result.get('Resolved', '')
@@ -500,81 +501,67 @@ class IncidentEvaluator:
                 
                 if parsed_date:
                     month_key = parsed_date.strftime('%Y-%m')  # Format: 2024-01
-                    month_display = parsed_date.strftime('%B %Y')  # Format: January 2024
+                    month_display = parsed_date.strftime('%b %y')  # Format: Jan 24
+                    all_months.add((month_key, month_display))
                     
-                    # Create key for month-group combination
-                    key = (month_key, month_display, app_group)
-                    
-                    if key not in monthly_group_data:
-                        monthly_group_data[key] = {
+                    if month_key not in group_month_data[app_group]:
+                        group_month_data[app_group][month_key] = {
                             'count': 0,
                             'total_score': 0,
                             'worknotes_total': 0,
                             'closing_total': 0
                         }
                     
-                    monthly_group_data[key]['count'] += 1
-                    monthly_group_data[key]['total_score'] += result.get('Total Score', 0)
-                    monthly_group_data[key]['worknotes_total'] += result.get('Worknotes Score', 0)
-                    monthly_group_data[key]['closing_total'] += result.get('Closing Comments Score', 0)
+                    group_month_data[app_group][month_key]['count'] += 1
+                    group_month_data[app_group][month_key]['total_score'] += result.get('Total Score', 0)
+                    group_month_data[app_group][month_key]['worknotes_total'] += result.get('Worknotes Score', 0)
+                    group_month_data[app_group][month_key]['closing_total'] += result.get('Closing Comments Score', 0)
                     
             except Exception as e:
                 continue
         
-        if not monthly_group_data:
+        if not group_month_data or not all_months:
             return
         
-        # Configure columns
-        columns = ('Month', 'Application Group', 'Avg Score', 'Avg Worknotes', 'Avg Closing')
+        # Sort months chronologically
+        sorted_months = sorted(list(all_months), key=lambda x: x[0])
+        month_displays = [m[1] for m in sorted_months]
+        month_keys = [m[0] for m in sorted_months]
+        
+        # Configure columns: Application Group + one column per month
+        columns = ['Application Group'] + month_displays
         self.trend_tree['columns'] = columns
         self.trend_tree['show'] = 'headings'
         
         # Set column headings and widths
-        self.trend_tree.heading('Month', text='Month')
         self.trend_tree.heading('Application Group', text='Application Group')
-        self.trend_tree.heading('Avg Score', text='Avg Score')
-        self.trend_tree.heading('Avg Worknotes', text='Avg Worknotes')
-        self.trend_tree.heading('Avg Closing', text='Avg Closing')
-        
-        self.trend_tree.column('Month', width=150, anchor=tk.W)
         self.trend_tree.column('Application Group', width=200, anchor=tk.W)
-        self.trend_tree.column('Avg Score', width=120, anchor=tk.CENTER)
-        self.trend_tree.column('Avg Worknotes', width=130, anchor=tk.CENTER)
-        self.trend_tree.column('Avg Closing', width=130, anchor=tk.CENTER)
         
-        # Sort by month and group
-        sorted_keys = sorted(monthly_group_data.keys(), key=lambda x: (x[0], x[2]))
+        for month_display in month_displays:
+            self.trend_tree.heading(month_display, text=month_display)
+            self.trend_tree.column(month_display, width=80, anchor=tk.CENTER)
         
-        # Populate data with color coding
-        for key in sorted_keys:
-            month_key, month_display, app_group = key
-            data = monthly_group_data[key]
-            count = data['count']
-            
-            avg_total = data['total_score'] / count if count > 0 else 0
-            avg_worknotes = data['worknotes_total'] / count if count > 0 else 0
-            avg_closing = data['closing_total'] / count if count > 0 else 0
-            
-            # Determine color based on avg score (Good > 74, Average 50-74, Poor < 50)
-            if avg_total > 74:
-                tag = 'good'
-            elif avg_total >= 50:
-                tag = 'average'
-            else:
-                tag = 'poor'
-            
-            self.trend_tree.insert('', tk.END, values=(
-                month_display,
-                app_group,
-                f"{avg_total:.2f}",
-                f"{avg_worknotes:.2f}",
-                f"{avg_closing:.2f}"
-            ), tags=(tag,))
+        # Sort groups alphabetically
+        sorted_groups = sorted(group_month_data.keys())
         
-        # Configure tags for color coding
-        self.trend_tree.tag_configure('good', background='#d4edda', foreground='#155724')
-        self.trend_tree.tag_configure('average', background='#fff3cd', foreground='#856404')
-        self.trend_tree.tag_configure('poor', background='#f8d7da', foreground='#721c24')
+        # Populate data - one row per group
+        for app_group in sorted_groups:
+            month_data = group_month_data[app_group]
+            row_values = [app_group]
+            
+            # Add score for each month
+            for month_key in month_keys:
+                if month_key in month_data:
+                    data = month_data[month_key]
+                    count = data['count']
+                    avg_total = data['total_score'] / count if count > 0 else 0
+                    row_values.append(f"{avg_total:.1f}")
+                else:
+                    row_values.append('-')
+            
+            self.trend_tree.insert('', tk.END, values=row_values)
+        
+        # Note: Trends are now visible horizontally - users can easily see increase/decrease across months
     
     def export_trend_results(self):
         """Export monthly trend results to Excel"""
