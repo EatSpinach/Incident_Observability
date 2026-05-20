@@ -229,6 +229,11 @@ class IncidentEvaluator:
         notebook.add(self.rca_frame, text="🔍 RCA")
         self.create_rca_tab()
         
+        # Tab 5: Monthly Trend Analysis
+        self.trend_frame = ttk.Frame(notebook)
+        notebook.add(self.trend_frame, text="📈 Monthly Trends")
+        self.create_trend_tab()
+        
         # Bottom frame - Status bar
         self.status_var = tk.StringVar(value="Ready")
         status_bar = ttk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN)
@@ -412,6 +417,308 @@ class IncidentEvaluator:
         self.rca_closing_text.insert(1.0, "Select an incident to view keyword analysis.")
         self.rca_worknotes_text.config(state=tk.DISABLED)
         self.rca_closing_text.config(state=tk.DISABLED)
+    def create_trend_tab(self):
+        """Create monthly trend analysis tab"""
+        # Main container
+        main_container = ttk.Frame(self.trend_frame, padding="10")
+        main_container.pack(fill=tk.BOTH, expand=True)
+        
+        # Title
+        title_label = ttk.Label(main_container, text="Monthly Trend Analysis - Quality Improvement/Reduction", 
+                               font=('Segoe UI', 14, 'bold'),
+                               foreground=self.colors['primary'])
+        title_label.pack(pady=(0, 10))
+        
+        # Description
+        desc_label = ttk.Label(main_container, 
+                              text="Track monthly trends in incident quality scores to identify improvements or reductions over time.",
+                              font=('Segoe UI', 10),
+                              foreground=self.colors['text_light'])
+        desc_label.pack(pady=(0, 15))
+        
+        # Filter frame
+        filter_frame = ttk.Frame(main_container)
+        filter_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Label(filter_frame, text="Filter by Application Group:", 
+                 font=('Segoe UI', 10, 'bold')).pack(side=tk.LEFT, padx=(0, 10))
+        
+        self.trend_group_var = tk.StringVar(value='All Groups')
+        self.trend_group_dropdown = ttk.Combobox(filter_frame,
+                                                  textvariable=self.trend_group_var,
+                                                  values=['All Groups'],
+                                                  state='readonly',
+                                                  width=50)
+        self.trend_group_dropdown.pack(side=tk.LEFT, padx=(0, 10))
+        self.trend_group_dropdown.bind('<<ComboboxSelected>>', lambda e: self.update_trend_analysis())
+        
+        ttk.Button(filter_frame, text="Refresh", 
+                  command=self.update_trend_analysis).pack(side=tk.LEFT)
+        
+        # Content frame with scrollbar
+        content_frame = ttk.Frame(main_container)
+        content_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Create canvas for scrolling
+        canvas = tk.Canvas(content_frame, bg=self.colors['bg_light'])
+        scrollbar = ttk.Scrollbar(content_frame, orient="vertical", command=canvas.yview)
+        self.trend_content = ttk.Frame(canvas)
+        
+        self.trend_content.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=self.trend_content, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Initial message
+        initial_label = ttk.Label(self.trend_content, 
+                                 text="Load and evaluate data to view monthly trends.",
+                                 font=('Segoe UI', 11),
+                                 foreground=self.colors['text_light'])
+        initial_label.pack(pady=50)
+    
+    def update_trend_analysis(self):
+        """Update monthly trend analysis"""
+        # Clear existing content
+        for widget in self.trend_content.winfo_children():
+            widget.destroy()
+        
+        if not self.evaluation_results:
+            ttk.Label(self.trend_content, 
+                     text="No data available. Please load and evaluate incidents first.",
+                     font=('Segoe UI', 11),
+                     foreground=self.colors['text_light']).pack(pady=50)
+            return
+        
+        # Get selected group filter
+        selected_group = self.trend_group_var.get()
+        
+        # Filter results by group if needed
+        filtered_results = self.evaluation_results
+        if selected_group != 'All Groups':
+            filtered_results = [r for r in self.evaluation_results if r.get('Group', '') == selected_group]
+        
+        if not filtered_results:
+            ttk.Label(self.trend_content, 
+                     text=f"No data available for '{selected_group}'.",
+                     font=('Segoe UI', 11),
+                     foreground=self.colors['text_light']).pack(pady=50)
+            return
+        
+        # Parse dates and group by month
+        from datetime import datetime
+        from collections import defaultdict
+        
+        monthly_data = defaultdict(lambda: {
+            'count': 0,
+            'total_score': 0,
+            'good': 0,
+            'average': 0,
+            'poor': 0,
+            'worknotes_total': 0,
+            'closing_total': 0
+        })
+        
+        for result in filtered_results:
+            resolved_date = result.get('Resolved', '')
+            if not resolved_date or str(resolved_date).strip().lower() in ['', 'none', 'null', 'n/a']:
+                continue
+            
+            try:
+                # Parse date
+                date_str = str(resolved_date).strip()
+                date_part = date_str.split()[0] if ' ' in date_str else date_str
+                
+                parsed_date = None
+                formats = [
+                    '%Y-%m-%d', '%d-%m-%Y', '%m/%d/%Y', '%d/%m/%Y',
+                    '%Y/%m/%d', '%d-%b-%Y', '%d-%B-%Y', '%b-%d-%Y',
+                    '%Y-%m-%d %H:%M:%S', '%d-%m-%Y %H:%M:%S'
+                ]
+                
+                for fmt in formats:
+                    try:
+                        parsed_date = datetime.strptime(date_str if '%H:%M:%S' in fmt else date_part, fmt)
+                        break
+                    except:
+                        continue
+                
+                if parsed_date:
+                    month_key = parsed_date.strftime('%Y-%m')  # Format: 2024-01
+                    month_display = parsed_date.strftime('%B %Y')  # Format: January 2024
+                    
+                    monthly_data[month_key]['month_display'] = month_display
+                    monthly_data[month_key]['count'] += 1
+                    monthly_data[month_key]['total_score'] += result.get('Total Score', 0)
+                    monthly_data[month_key]['worknotes_total'] += result.get('Worknotes Score', 0)
+                    monthly_data[month_key]['closing_total'] += result.get('Closing Comments Score', 0)
+                    
+                    rating = result.get('Total Rating', '')
+                    if rating == 'Good':
+                        monthly_data[month_key]['good'] += 1
+                    elif rating == 'Average':
+                        monthly_data[month_key]['average'] += 1
+                    elif rating == 'Poor':
+                        monthly_data[month_key]['poor'] += 1
+            except Exception as e:
+                continue
+        
+        if not monthly_data:
+            ttk.Label(self.trend_content, 
+                     text="Unable to parse dates from the data.",
+                     font=('Segoe UI', 11),
+                     foreground=self.colors['text_light']).pack(pady=50)
+            return
+        
+        # Sort by month
+        sorted_months = sorted(monthly_data.keys())
+        
+        # Calculate averages and trends
+        monthly_stats = []
+        for month_key in sorted_months:
+            data = monthly_data[month_key]
+            count = data['count']
+            avg_total = data['total_score'] / count if count > 0 else 0
+            avg_worknotes = data['worknotes_total'] / count if count > 0 else 0
+            avg_closing = data['closing_total'] / count if count > 0 else 0
+            
+            monthly_stats.append({
+                'month': month_key,
+                'display': data['month_display'],
+                'count': count,
+                'avg_total': avg_total,
+                'avg_worknotes': avg_worknotes,
+                'avg_closing': avg_closing,
+                'good': data['good'],
+                'average': data['average'],
+                'poor': data['poor'],
+                'good_pct': (data['good'] / count * 100) if count > 0 else 0,
+                'average_pct': (data['average'] / count * 100) if count > 0 else 0,
+                'poor_pct': (data['poor'] / count * 100) if count > 0 else 0
+            })
+        
+        # Display summary statistics
+        summary_frame = ttk.LabelFrame(self.trend_content, text="Trend Summary", padding="15")
+        summary_frame.pack(fill=tk.X, padx=10, pady=(0, 15))
+        
+        if len(monthly_stats) >= 2:
+            first_month = monthly_stats[0]
+            last_month = monthly_stats[-1]
+            
+            score_change = last_month['avg_total'] - first_month['avg_total']
+            score_change_pct = (score_change / first_month['avg_total'] * 100) if first_month['avg_total'] > 0 else 0
+            
+            good_change = last_month['good_pct'] - first_month['good_pct']
+            
+            # Determine trend
+            if score_change > 0:
+                trend_text = f"📈 IMPROVEMENT: Average score increased by {abs(score_change):.2f} points ({abs(score_change_pct):.1f}%)"
+                trend_color = self.colors['success']
+            elif score_change < 0:
+                trend_text = f"📉 REDUCTION: Average score decreased by {abs(score_change):.2f} points ({abs(score_change_pct):.1f}%)"
+                trend_color = self.colors['accent']
+            else:
+                trend_text = "➡️ STABLE: No significant change in average score"
+                trend_color = self.colors['warning']
+            
+            ttk.Label(summary_frame, text=trend_text, 
+                     font=('Segoe UI', 12, 'bold'),
+                     foreground=trend_color).pack(anchor=tk.W, pady=(0, 5))
+            
+            ttk.Label(summary_frame, 
+                     text=f"Period: {first_month['display']} to {last_month['display']} ({len(monthly_stats)} months)",
+                     font=('Segoe UI', 10)).pack(anchor=tk.W, pady=(0, 5))
+            
+            ttk.Label(summary_frame, 
+                     text=f"Good Quality Change: {good_change:+.1f}% ({first_month['good_pct']:.1f}% → {last_month['good_pct']:.1f}%)",
+                     font=('Segoe UI', 10)).pack(anchor=tk.W)
+        
+        # Display monthly data table
+        table_frame = ttk.LabelFrame(self.trend_content, text="Monthly Breakdown", padding="10")
+        table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        
+        # Create treeview
+        columns = ('Month', 'Count', 'Avg Score', 'Avg Worknotes', 'Avg Closing', 
+                  'Good', 'Average', 'Poor', 'Trend')
+        tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=15)
+        
+        # Configure columns
+        tree.column('Month', width=120, anchor=tk.W)
+        tree.column('Count', width=70, anchor=tk.CENTER)
+        tree.column('Avg Score', width=90, anchor=tk.CENTER)
+        tree.column('Avg Worknotes', width=110, anchor=tk.CENTER)
+        tree.column('Avg Closing', width=100, anchor=tk.CENTER)
+        tree.column('Good', width=80, anchor=tk.CENTER)
+        tree.column('Average', width=80, anchor=tk.CENTER)
+        tree.column('Poor', width=80, anchor=tk.CENTER)
+        tree.column('Trend', width=100, anchor=tk.CENTER)
+        
+        for col in columns:
+            tree.heading(col, text=col)
+        
+        # Add scrollbars
+        vsb = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
+        hsb = ttk.Scrollbar(table_frame, orient="horizontal", command=tree.xview)
+        tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        
+        tree.grid(row=0, column=0, sticky="nsew")
+        vsb.grid(row=0, column=1, sticky="ns")
+        hsb.grid(row=1, column=0, sticky="ew")
+        
+        table_frame.grid_rowconfigure(0, weight=1)
+        table_frame.grid_columnconfigure(0, weight=1)
+        
+        # Populate data
+        prev_score = None
+        for stat in monthly_stats:
+            # Determine trend indicator
+            if prev_score is not None:
+                diff = stat['avg_total'] - prev_score
+                if diff > 2:
+                    trend = "↑ Up"
+                elif diff < -2:
+                    trend = "↓ Down"
+                else:
+                    trend = "→ Stable"
+            else:
+                trend = "—"
+            
+            tree.insert('', tk.END, values=(
+                stat['display'],
+                stat['count'],
+                f"{stat['avg_total']:.2f}",
+                f"{stat['avg_worknotes']:.2f}",
+                f"{stat['avg_closing']:.2f}",
+                f"{stat['good']} ({stat['good_pct']:.1f}%)",
+                f"{stat['average']} ({stat['average_pct']:.1f}%)",
+                f"{stat['poor']} ({stat['poor_pct']:.1f}%)",
+                trend
+            ))
+            
+            prev_score = stat['avg_total']
+    
+    
+    def update_trend_dropdown(self):
+        """Update trend analysis dropdown with application groups"""
+        if not self.evaluation_results:
+            return
+        
+        # Get unique application groups
+        groups = set()
+        for result in self.evaluation_results:
+            group = result.get('Group', '')
+            if group:
+                groups.add(group)
+        
+        # Update dropdown
+        group_options = ['All Groups'] + sorted(groups)
+        self.trend_group_dropdown['values'] = group_options
+        self.trend_group_var.set('All Groups')
     
     def display_rca_analysis(self, event=None):
         """Display RCA analysis for selected incident"""
@@ -956,6 +1263,8 @@ class IncidentEvaluator:
             self.update_group_analysis()
             self.update_individual_dashboard()
             self.update_rca_dropdown()
+            self.update_trend_analysis()
+            self.update_trend_dropdown()
             
             self.status_var.set(f"Evaluation complete! Processed {len(results)} records")
             
