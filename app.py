@@ -17,6 +17,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['SESSION_TYPE'] = 'filesystem'  # Use filesystem instead of cookies for large data
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -271,9 +272,9 @@ def upload_file():
             result = evaluate_row(row, cols, config)
             results.append(result)
         
-        # Store in session
-        session['results'] = results
-        session['filename'] = filename
+        # Don't store large results in session - return directly
+        # session['results'] = results
+        # session['filename'] = filename
         
         # Calculate statistics
         stats = calculate_statistics(results)
@@ -320,10 +321,10 @@ def calculate_statistics(results):
         'total_poor': total_ratings.get('Poor', 0)
     }
 
-@app.route('/export')
+@app.route('/export', methods=['POST'])
 def export_results():
     """Export results to Excel"""
-    results = session.get('results', [])
+    results = request.json.get('results', [])
     if not results:
         return jsonify({'error': 'No results to export'}), 400
     
