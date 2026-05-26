@@ -744,6 +744,8 @@ class IncidentEvaluator:
         
         # Get worknotes and closing comments
         worknotes = self.safe_cell_text(self.df[incident_idx].get(cols['worknotes'], ''))
+        
+        # Get closing comments
         closing = self.safe_cell_text(self.df[incident_idx].get(cols['closing'], ''))
         
         # Display with highlighting
@@ -1518,7 +1520,7 @@ class IncidentEvaluator:
         if cols['worknotes']:
             worknotes = self.safe_cell_text(row.get(cols['worknotes']))
             worknotes_score, worknotes_issues = self.evaluate_text(
-                worknotes, 
+                worknotes,
                 self.config['worknotes']
             )
         
@@ -2163,7 +2165,7 @@ class IncidentEvaluator:
                             # Check if worknotes or closing comments are blank
                             worknotes_blank = False
                             closing_blank = False
-                            
+
                             if cols.get('worknotes'):
                                 worknotes_text = self.safe_cell_text(row.get(cols['worknotes'], ''))
                                 if not worknotes_text or worknotes_text.strip() == '':
@@ -2373,7 +2375,7 @@ class IncidentEvaluator:
                         if row_person == person_name:
                             worknotes_blank = False
                             closing_blank = False
-                            
+
                             if cols.get('worknotes'):
                                 worknotes_text = self.safe_cell_text(row.get(cols['worknotes'], ''))
                                 if not worknotes_text or worknotes_text.strip() == '':
@@ -2727,7 +2729,7 @@ class IncidentEvaluator:
                     if row_person == person_name:
                         worknotes_blank = False
                         closing_blank = False
-                        
+
                         if cols.get('worknotes'):
                             worknotes_text = self.safe_cell_text(row.get(cols['worknotes'], ''))
                             if not worknotes_text or worknotes_text.strip() == '':
@@ -2803,7 +2805,7 @@ class IncidentEvaluator:
                     if row_group == group_name:
                         worknotes_blank = False
                         closing_blank = False
-                        
+
                         if cols.get('worknotes'):
                             worknotes_text = self.safe_cell_text(row.get(cols['worknotes'], ''))
                             if not worknotes_text or worknotes_text.strip() == '':
