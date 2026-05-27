@@ -4,6 +4,7 @@ Flask-based web interface for evaluating incident worknotes and closing comments
 """
 
 from flask import Flask, render_template, request, jsonify, send_file, session
+from flask_cors import CORS
 import os
 import json
 from datetime import datetime
@@ -12,8 +13,10 @@ import openpyxl
 import xlrd
 from werkzeug.utils import secure_filename
 import io
+import traceback
 
 app = Flask(__name__)
+CORS(app)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -234,6 +237,11 @@ def evaluate_row(row, cols, config):
         'Closing Comments Issues': '; '.join(closing_issues) if closing_issues else 'None'
     }
 
+@app.route('/health')
+def health():
+    """Health check endpoint"""
+    return jsonify({'status': 'healthy', 'message': 'Application is running'}), 200
+
 @app.route('/')
 def index():
     """Home page"""
@@ -289,6 +297,8 @@ def upload_file():
         })
     
     except Exception as e:
+        print(f"Error in upload_file: {str(e)}")
+        print(traceback.format_exc())
         return jsonify({'error': f'Error processing file: {str(e)}'}), 500
 
 def calculate_statistics(results):
