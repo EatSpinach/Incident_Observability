@@ -237,6 +237,11 @@ def evaluate_row(row, cols, config):
         'Closing Comments Issues': '; '.join(closing_issues) if closing_issues else 'None'
     }
 
+@app.route('/health')
+def health():
+    """Health check endpoint"""
+    return jsonify({'status': 'healthy', 'message': 'Application is running'}), 200
+
 @app.route('/')
 def index():
     """Home page"""
