@@ -1,11 +1,9 @@
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
-venv/
-ENV/
 build/
 develop-eggs/
 dist/
@@ -21,12 +19,32 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-uploads/
-*.log
-.DS_Store
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# Data files (if sensitive)
+# Uncomment if you don't want to track data files
+# Data files/
 
 # Made with Bob

@@ -589,20 +589,6 @@
                     body: formData
                 });
 
-                // Check if response is ok
-                if (!response.ok) {
-                    const text = await response.text();
-                    let errorMsg = 'Server error occurred';
-                    try {
-                        const errorData = JSON.parse(text);
-                        errorMsg = errorData.error || errorMsg;
-                    } catch (e) {
-                        errorMsg = text.substring(0, 200); // Show first 200 chars of error
-                    }
-                    showAlert(errorMsg, 'error');
-                    return;
-                }
-
                 const data = await response.json();
 
                 if (data.error) {
@@ -614,7 +600,6 @@
                     showAlert(`Successfully evaluated ${data.total_records} incidents!`, 'success');
                 }
             } catch (error) {
-                console.error('Full error:', error);
                 showAlert('Error processing file: ' + error.message, 'error');
             } finally {
                 document.getElementById('loading').classList.remove('active');
